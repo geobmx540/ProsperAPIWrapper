@@ -218,3 +218,4 @@ UpgradeLog*.htm
 
 # Microsoft Fakes
 FakesAssemblies/
+*.suo

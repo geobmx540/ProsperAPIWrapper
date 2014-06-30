@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ProsperAPI
+namespace ProsperAPIWrapper
 {
     public class Investment
     {

@@ -67,7 +67,7 @@ namespace ProsperAPIWrapper
 
         public async Task<List<Investment>> GetPendingInvestmentsAsync()
         {
-            return await GetProsperObjectAsync<List<Investment>>("Investments/$filter=ListingStatus eq 2").ConfigureAwait(false);
+            return await GetProsperObjectAsync<List<Investment>>("Investments?$filter=ListingStatus eq 2").ConfigureAwait(false);
         }
 
         public async Task<InvestResponse> InvestAsync(string listingId, string amount)

@@ -78,7 +78,7 @@ namespace ProsperAPIWrapperTest
         [TestMethod]
         public void GetPendingInvestments()
         {
-            var pendingInvestments = _api.GetListingsAsync().Result;
+            var pendingInvestments = _api.GetPendingInvestmentsAsync().Result;
 
             Assert.IsTrue(pendingInvestments.Count > 0, "Zero Pending Investments");
         }

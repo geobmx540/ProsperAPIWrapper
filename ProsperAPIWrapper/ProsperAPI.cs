@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using System.Net.Http;
 
 namespace ProsperAPIWrapper
 {
@@ -13,12 +13,25 @@ namespace ProsperAPIWrapper
     {
         private readonly string _apiBaseUrl;
         private readonly AuthenticationHeaderValue _authenticationHeader;
+        private const string ProductionUrl = "https://api.prosper.com/v1/";
 
+        /// <summary>
+        /// Create a new API Wrapper with the given username and password
+        /// </summary>
+        /// <param name="username">Prosper API Username</param>
+        /// <param name="password">Prosper API Password</param>
         public ProsperApi(string username, string password) :
-            this(username, password, "https://api.prosper.com/v1/")
+            this(username, password, ProductionUrl)
         {
         }
 
+        /// <summary>
+        /// Create a new API Wrapper with the given username, password and base URL.
+        /// Mainly provided for testing purposes
+        /// </summary>
+        /// <param name="username">Prosper API Username</param>
+        /// <param name="password">Prosper API Password</param>
+        /// <param name="baseUrl">Base Url of Prosper API (e.g. https://api.prosper.com/v1/) </param>
         public ProsperApi(string username, string password, string baseUrl)
         {
             if (String.IsNullOrWhiteSpace(username) || String.IsNullOrEmpty(password))
@@ -34,13 +47,15 @@ namespace ProsperAPIWrapper
                          string.Format("{0}:{1}", username, password))));
         }
 
+        /// <summary>
+        /// Authenticates the credentials
+        /// </summary>
+        /// <returns></returns>
         public async Task<bool> AuthenticateAsync()
         {
             try
             {
-                // The account call will fail out if credentials are incorrect, thus
-                // we won't spend time getting Notes. If Account information is right,
-                // then we load the notes data at the same time, so we can use it 
+                // The account call will fail out if credentials are incorrect
                 await GetAccountAsync().ConfigureAwait(false);
                 return true;
             }
@@ -50,26 +65,64 @@ namespace ProsperAPIWrapper
             }
         }
 
-        public async Task<List<Note>> GetNotesAsync()
+        /// <summary>
+        /// Returns a list of all notes associated with the account
+        /// </summary>
+        public Task<List<Note>> GetNotesAsync()
         {
-            return await GetProsperObjectAsync<List<Note>>("notes/").ConfigureAwait(false);
+            return GetProsperObjectAsync<List<Note>>("notes/");
         }
 
-        public async Task<Account> GetAccountAsync()
+        /// <summary>
+        /// Returns the account summary
+        /// </summary>
+        public Task<Account> GetAccountAsync()
         {
-            return await GetProsperObjectAsync<Account>("account/").ConfigureAwait(false);
+            return GetProsperObjectAsync<Account>("account/");
         }
 
-        public async Task<List<Listing>> GetListingsAsync()
+        /// <summary>
+        /// Returns current active listings
+        /// </summary>
+        public Task<List<Listing>> GetListingsAsync()
         {
-            return await GetProsperObjectAsync<List<Listing>>("Listings/").ConfigureAwait(false);
+            return GetProsperObjectAsync<List<Listing>>("Listings/");
         }
 
-        public async Task<List<Investment>> GetPendingInvestmentsAsync()
+        /// <summary>
+        /// Returns all pending investments (used to avoid double investing in the same loan)
+        /// </summary>
+        public Task<List<Investment>> GetPendingInvestmentsAsync()
         {
-            return await GetProsperObjectAsync<List<Investment>>("Investments?$filter=ListingStatus eq 2").ConfigureAwait(false);
+            return GetProsperObjectAsync<List<Investment>>("Investments?$filter=ListingStatus eq 2");
         }
 
+        /// <summary>
+        /// Return Prosper Object T from the URL
+        /// Base for the other GetXXXAsync Methods, use this for custom ODATA Urls
+        /// </summary>
+        /// <typeparam name="T">Prosper Object Type to return</typeparam>
+        /// <param name="url">API endpoint url - can handle ODATA Parameters</param>
+        public async Task<T> GetProsperObjectAsync<T>(string url)
+        {
+            using (var client = HttpClientSetup())
+            {
+                var response = await client.GetAsync(url).ConfigureAwait(false);
+
+                if (response.StatusCode != HttpStatusCode.OK)
+                    throw new Exception(response.StatusCode.ToString());
+
+                var obj = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                return JsonConvert.DeserializeObject<T>(obj);
+            }
+        }
+
+        /// <summary>
+        /// Invest [amount] in [listingId]
+        /// </summary>
+        /// <param name="listingId">ID of the Listing</param>
+        /// <param name="amount">Amount to invest</param>
+        /// <returns></returns>
         public async Task<InvestResponse> InvestAsync(string listingId, string amount)
         {
             using (var client = HttpClientSetup())
@@ -89,20 +142,6 @@ namespace ProsperAPIWrapper
 
                 var obj = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JsonConvert.DeserializeObject<InvestResponse>(obj);
-            }
-        }
-
-        private async Task<T> GetProsperObjectAsync<T>(string url)
-        {
-            using (var client = HttpClientSetup())
-            {
-                var response = await client.GetAsync(url).ConfigureAwait(false);
-
-                if (response.StatusCode != HttpStatusCode.OK)
-                    throw new Exception(response.StatusCode.ToString());
-
-                var obj = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                return JsonConvert.DeserializeObject<T>(obj);
             }
         }
 

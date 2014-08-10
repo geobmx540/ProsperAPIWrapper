@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ProsperAPIWrapper;
 
@@ -16,7 +18,7 @@ namespace ProsperAPIWrapperTest
         // Production baseUrl: https://api.prosper.com/v1/
 
         private readonly ProsperApi _api = new ProsperApi(Username, Password, "https://api.stg.circleone.com/v1/");
-
+        
         [TestMethod]
         public void Contructor_Null_Username()
         {
@@ -91,6 +93,14 @@ namespace ProsperAPIWrapperTest
             var result = _api.InvestAsync("23443", "20").Result;
 
             Assert.IsNotNull(result, "Invest returned null result");
+        }
+
+        [TestMethod]
+        public void Get_AA_Listings()
+        {
+            var aaListings = _api.GetProsperObjectAsync<List<Listing>>("Listings?filter=ProsperRating eq AA").Result;
+
+            Assert.IsTrue(aaListings.Any(x => x.ProsperRating != "AA"), "There are listings that do no meet AA Prosper Rating");
         }
     }
 }
